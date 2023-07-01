@@ -27,11 +27,15 @@ func (ss SubServer)solve(operands []string) int{
 	intOperands := make([]int, len(operands))
 
 	log.Println("Operands to solving: ", operands)
-	for index, num := range operands[1:]{
-		n, _ := strconv.Atoi(num)
-		intOperands[index + 1] = -n
+	for index, num := range operands{
+		n, _ := strconv.Atoi(strings.TrimSpace(num))
+		if index == 0{
+			intOperands[index] = n
+		}else{
+			intOperands[index] = -n
+		}
 	}
-
+	
 	for _, num := range intOperands{
 		sub += num
 	}
@@ -63,15 +67,14 @@ func (ss SubServer) Start(){
 func (ss SubServer) handleConnection(conn net.Conn){
 	operands := []string{} 
 	var response int 
-	for{
-		buffer, _ := bufio.NewReader(conn).ReadString('\n')
+	buffer, _ := bufio.NewReader(conn).ReadString('\n')
 
-		parserBuffer := strings.Split(strings.TrimSpace(buffer), ",")
-		operands = append(operands, parserBuffer...)
+	parserBuffer := strings.Split(strings.TrimSpace(buffer), ",")[1:]
+	operands = append(operands, parserBuffer...)
 
-		response = ss.solve(operands)
+	response = ss.solve(operands)
 
-		conn.Write([]byte(strconv.Itoa(response)))
-		log.Println("Sended!")
-	}
+	conn.Write([]byte(strconv.Itoa(response) + "\n"))
+	log.Println("[+]Sub Server says: 'Sended response to central server!'")
+	
 }

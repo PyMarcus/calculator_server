@@ -6,10 +6,11 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	"github.com/PyMarcus/calculator_server/interfaces"
 	"github.com/PyMarcus/calculator_server/settings"
 	"github.com/PyMarcus/calculator_server/sub_server"
 	"github.com/PyMarcus/calculator_server/sum_server"
-	"github.com/PyMarcus/calculator_server/interfaces"
 )
 
 type CentralServer struct {
@@ -18,7 +19,7 @@ type CentralServer struct {
 }
 
 // New instance of SubServer class will be created
-func (ss CentralServer) New() *CentralServer {
+func New() *CentralServer {
 	s := CentralServer{Ip: settings.GetCentralServerInfo("IP"), Port: settings.GetCentralServerInfo("PORT")}
 	return &s
 }
@@ -29,11 +30,16 @@ func manager(operatorInterface interfaces.IOperator){
 
 // Start the server, by default on 127.0.0.1:9992
 func (ss CentralServer) Start(){
-	server := ss.New()
 
-	log.Printf("Running central server on %s:%s\n", server.Ip, server.Port)
+	
+	sum := sum_server.New()
+	sub := sub_server.New()
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", server.Ip, server.Port))
+	go manager(sum)
+	go manager(sub)
+	log.Printf("Running central server on %s:%s\n", ss.Ip, ss.Port)
+
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ss.Ip, ss.Port))
 
 	if err != nil{
 		log.Fatalln("Error to connect ", err)
@@ -52,25 +58,24 @@ func (ss CentralServer) Start(){
 func (ss CentralServer) handleConnection(conn net.Conn){
 	var response string 
 
-	sum := sum_server.New()
-	sub := sub_server.New()
-
-	go manager(sum)
-	go manager(sub)
-
 	for{
+
 		buffer, _ := bufio.NewReader(conn).ReadString('\n')
+	
+		log.Println("[+] Received!")
 
 		to := strings.Split(buffer, ",")[0]
 
 
 		if to == "SUBTRACAO"{
+			log.Println("[+]Client says ", buffer)
 			response = ss.post(buffer, "sub")
 		}else{
+			log.Println("[+]Client says ", buffer)
 			response = ss.post(buffer, "sum")
 		}
-		conn.Write([]byte(response))
-		log.Println("Sended!")
+		conn.Write([]byte(response + "\n"))
+		log.Println("[+]Central Server: Sended response to client!")
 	}
 }
 
@@ -90,7 +95,8 @@ func (ss CentralServer) post(data string, server string) (response string){
 		log.Fatalln(err)
 	}
 
-	log.Printf("Sending data %s to server %s\n", data, server)
+
+	log.Printf("[+]Sending data %s to server %s\n", strings.TrimSpace(strings.Split(data, "\n")[0]), server)
 
 	conn.Write([]byte(data))
 

@@ -23,16 +23,16 @@ func New() *SumServer {
 
 // Solve operations like x-y, with N parameters
 func (ss SumServer)solve(operands []string) int{
-	sub := 0
-	intOperands := make([]int, len(operands))
+	sum := 0
 
-	log.Println("Operands to solving: ", operands)
+	log.Println("[+]Operands to solving: ", operands)
 
-	for _, num := range intOperands{
-		sub += num
+	for _, num := range operands{
+		n, _ := strconv.Atoi(strings.TrimSpace(num))
+		sum += n
 	}
-	log.Println("Result: ", sub)
-	return sub
+	log.Println("[+]Result of sum: ", sum)
+	return sum
 }
 
 // Start the server, by default on 127.0.0.1:9991
@@ -59,15 +59,13 @@ func (ss SumServer) Start(){
 func (ss SumServer) handleConnection(conn net.Conn){
 	operands := []string{} 
 	var response int 
-	for{
-		buffer, _ := bufio.NewReader(conn).ReadString('\n')
+	buffer, _ := bufio.NewReader(conn).ReadString('\n')
 
-		parserBuffer := strings.Split(strings.TrimSpace(buffer), ",")
-		operands = append(operands, parserBuffer...)
+	parserBuffer := strings.Split(strings.TrimSpace(buffer), ",")[1:]
+	operands = append(operands, parserBuffer...)
 
-		response = ss.solve(operands)
+	response = ss.solve(operands)
 
-		conn.Write([]byte(strconv.Itoa(response)))
-		log.Println("Sended!")
-	}
+	conn.Write([]byte(strconv.Itoa(response) + "\n"))
+	log.Println("[+]Sum Server says: 'Sended response to central server!'")	
 }
